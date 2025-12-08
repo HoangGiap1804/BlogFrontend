@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginUser, saveAuthData } from '../services/auth';
 import '../index.css';
 
@@ -66,6 +66,10 @@ const Login = () => {
                         {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
+
+                <div className="auth-link">
+                    Don't have an account? <Link to="/register">Register here</Link>
+                </div>
             </div>
         </div>
     );
