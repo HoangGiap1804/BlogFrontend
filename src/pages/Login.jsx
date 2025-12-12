@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginUser, saveAuthData } from '../services/auth';
+import { loginUser, saveAuthData, fetchCurrentUser } from '../services/auth';
 import '../index.css';
 
 const Login = () => {
@@ -16,10 +16,22 @@ const Login = () => {
         setError(null);
 
         try {
+            // Step 1: Login and get access token
             const data = await loginUser(email, password);
             saveAuthData(data);
-            // For now, staying on page or redirected to a dashboard (if it existed)
-            // Showing an alert or just simple redirect
+
+            // Step 2: Fetch complete user profile and update localStorage
+            try {
+                const userData = await fetchCurrentUser();
+                // Update localStorage with complete user data
+                if (userData.user) {
+                    localStorage.setItem('user', JSON.stringify(userData.user));
+                }
+            } catch (profileErr) {
+                console.error('Failed to fetch user profile after login:', profileErr);
+                // Continue anyway since login was successful
+            }
+
             alert(`Login Successful! Welcome ${data.user.username}`);
             navigate('/');
         } catch (err) {

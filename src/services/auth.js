@@ -128,3 +128,8 @@ export const updateProfile = async (profileData) => {
 
     return data;
 };
+
+export const clearAuthData = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('user');
+};

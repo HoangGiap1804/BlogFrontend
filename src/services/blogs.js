@@ -153,5 +153,11 @@ export const deleteBlog = async (blogId) => {
         throw new Error(errorData.message || 'Failed to delete blog');
     }
 
+    // 204 No Content - successful deletion with no response body
+    if (response.status === 204) {
+        return { status: 204, success: true };
+    }
+
+    // Other successful statuses with response body
     return await response.json();
 };

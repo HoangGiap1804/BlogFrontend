@@ -33,12 +33,16 @@ const Profile = () => {
         const loadProfile = async () => {
             console.log("Starting loadProfile...");
             try {
-                console.log("Calling fetchCurrentUser...");
-                const data = await fetchCurrentUser();
-                console.log("fetchCurrentUser success:", data);
-                // API returns { user: { ... } }
-                const userData = data.user || data;
-                setProfile(userData);
+                let userData = localStorage.getItem('user');;
+                // Get from localStorage first
+                const savedUser = localStorage.getItem('user');
+
+                if (savedUser) {
+                    console.log("Loading user from localStorage cache");
+                    userData = JSON.parse(savedUser);
+                    setProfile(userData);
+                    setLoading(false);
+                }
 
                 console.log("User ID:", userData?._id);
 
