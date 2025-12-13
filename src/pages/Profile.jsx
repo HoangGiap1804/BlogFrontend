@@ -311,13 +311,26 @@ const Profile = () => {
                     <div className="social-links-section">
                         <h3>Social Links</h3>
                         <div className="social-links-grid">
-                            {Object.entries(socialLinks).map(([platform, url]) => (
-                                url && (
-                                    <a key={platform} href={url} target="_blank" rel="noopener noreferrer" className="social-link">
+                            {Object.entries(socialLinks).map(([platform, url]) => {
+                                if (!url) return null;
+
+                                // Sanitize URL: Ensure it starts with http:// or https://
+                                let safeUrl = url;
+                                if (!/^https?:\/\//i.test(url)) {
+                                    // If it's a javascript: URI, ignore it or make it safe
+                                    if (/^javascript:/i.test(url)) {
+                                        return null; // Do not render dangerous links
+                                    }
+                                    // Assume it's a domain and prepend https://
+                                    safeUrl = `https://${url}`;
+                                }
+
+                                return (
+                                    <a key={platform} href={safeUrl} target="_blank" rel="noopener noreferrer" className="social-link">
                                         {platform.charAt(0).toUpperCase() + platform.slice(1)}
                                     </a>
-                                )
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

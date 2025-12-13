@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { fetchBlogBySlug, likeBlog } from '../services/blogs';
 import { fetchComments, createComment } from '../services/comments';
 import { getAuthData } from '../services/auth';
+import DOMPurify from 'dompurify';
 import '../index.css';
 
 const BlogDetail = () => {
@@ -132,7 +133,7 @@ const BlogDetail = () => {
 
                 <div className="blog-actions">
                     <button onClick={handleLike} className="like-btn">
-                        ❤️ Like
+                        Like
                     </button>
                 </div>
             </article>
@@ -166,20 +167,8 @@ const BlogDetail = () => {
 };
 
 const DangerousComment = ({ html }) => {
-    const ref = React.useRef(null);
-
-    React.useEffect(() => {
-        if (ref.current) {
-            ref.current.innerHTML = '';
-            const range = document.createRange();
-            range.selectNodeContents(ref.current);
-            // createContextualFragment executes scripts
-            const fragment = range.createContextualFragment(html);
-            ref.current.appendChild(fragment);
-        }
-    }, [html]);
-
-    return <div ref={ref} />;
+    const sanitizedHtml = DOMPurify.sanitize(html);
+    return <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />;
 };
 
 export default BlogDetail;
