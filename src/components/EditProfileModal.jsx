@@ -21,7 +21,6 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }) => {
 
         try {
             const updateData = {
-                username,
                 first_name: firstName,
                 last_name: lastName,
                 facebook,
@@ -56,17 +55,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }) => {
                 {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="profile-form">
-                    <div className="form-group">
-                        <label htmlFor="username">Username</label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter username"
-                            disabled={loading}
-                        />
-                    </div>
+
 
                     <div className="form-group">
                         <label htmlFor="firstName">First Name</label>

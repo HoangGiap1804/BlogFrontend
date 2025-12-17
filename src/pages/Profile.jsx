@@ -1,24 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchCurrentUser } from '../services/auth';
+
+import { getAuthData } from '../services/auth';
 import { fetchBlogsByUserId, fetchBlogs, deleteBlog } from '../services/blogs';
 import { fetchUsers, deleteUser } from '../services/users';
 import EditProfileModal from '../components/EditProfileModal';
 import EditBlogModal from '../components/EditBlogModal';
-import EditUserModal from '../components/EditUserModal';
+import DeleteBlogModal from '../components/DeleteBlogModal';
+import DeleteUserModal from '../components/DeleteUserModal';
 import '../index.css';
 
 const Profile = () => {
-    const [profile, setProfile] = useState(null);
+    const { user: storedUser } = getAuthData();
+    const [profile, setProfile] = useState(storedUser);
     const [blogs, setBlogs] = useState([]);
     const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!storedUser);
     const [blogsLoading, setBlogsLoading] = useState(false);
     const [usersLoading, setUsersLoading] = useState(false);
     const [error, setError] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingBlog, setEditingBlog] = useState(null);
-    const [editingUser, setEditingUser] = useState(null);
+    const [deletingBlog, setDeletingBlog] = useState(null);
+    const [deletingUser, setDeletingUser] = useState(null);
     const [activeTab, setActiveTab] = useState('blogs'); // 'blogs' or 'users'
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -30,61 +34,13 @@ const Profile = () => {
     const usersPerPage = 10;
 
     useEffect(() => {
-        const loadProfile = async () => {
-            console.log("Starting loadProfile...");
-            try {
-                console.log("Calling fetchCurrentUser...");
-                const data = await fetchCurrentUser();
-                console.log("fetchCurrentUser success:", data);
-                // API returns { user: { ... } }
-                const userData = data.user || data;
-                setProfile(userData);
-
-                console.log("User ID:", userData?._id);
-
-                // Fetch user's blogs after profile is loaded
-                if (userData?._id) {
-                    setBlogsLoading(true);
-                    try {
-                        console.log("Fetching blogs for user ID:", userData._id);
-                        const offset = (page - 1) * blogsPerPage;
-
-                        let blogsData;
-                        // Admin fetches all blogs, regular users fetch only their blogs
-                        if (userData.role === 'admin') {
-                            console.log("Admin user - fetching all blogs");
-                            blogsData = await fetchBlogs(blogsPerPage, offset);
-                        } else {
-                            console.log("Regular user - fetching user blogs");
-                            blogsData = await fetchBlogsByUserId(userData._id, blogsPerPage, offset);
-                        }
-
-                        console.log("User blogs:", blogsData);
-                        setBlogs(blogsData.blogs || blogsData.items || []);
-                        const total = blogsData.total || 0;
-                        setTotalPages(Math.ceil(total / blogsPerPage));
-                    } catch (blogErr) {
-                        console.error("Failed to load blogs", blogErr);
-                    } finally {
-                        setBlogsLoading(false);
-                    }
-                } else {
-                    console.log("No user ID found in userData:", userData);
-                }
-            } catch (err) {
-                console.error("Failed to load profile", err);
-                if (err.message === 'Unauthorized' || err.message === 'Access denied') {
-                    navigate('/login');
-                } else {
-                    setError('Failed to load profile info.');
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadProfile();
-    }, [navigate]);
+        if (!storedUser) {
+            navigate('/login');
+        } else {
+            console.log("Profile loaded from localStorage:", storedUser._id);
+            setLoading(false);
+        }
+    }, [storedUser, navigate]);
 
     // Reload blogs when page changes
     useEffect(() => {
@@ -115,14 +71,11 @@ const Profile = () => {
         }
     }, [page, profile]);
 
-    const handleProfileUpdate = async () => {
-        // Reload profile after update
-        try {
-            const data = await fetchCurrentUser();
-            const userData = data.user || data;
-            setProfile(userData);
-        } catch (err) {
-            console.error("Failed to reload profile", err);
+    const handleProfileUpdate = () => {
+        // Reload profile from localStorage after update
+        const { user } = getAuthData();
+        if (user) {
+            setProfile(user);
         }
     };
 
@@ -161,13 +114,12 @@ const Profile = () => {
         if (page < totalPages) setPage(page + 1);
     };
 
-    const handleDeleteBlog = async (e, blog) => {
+    const handleDeleteClick = (e, blog) => {
         e.stopPropagation(); // Prevent navigation
+        setDeletingBlog(blog);
+    };
 
-        const confirmed = window.confirm(`Are you sure you want to delete "${blog.title}"? This action cannot be undone.`);
-
-        if (!confirmed) return;
-
+    const handleConfirmDeleteBlog = async (blog) => {
         try {
             await deleteBlog(blog._id);
 
@@ -186,6 +138,7 @@ const Profile = () => {
                 const total = blogsData.total || 0;
                 setTotalPages(Math.ceil(total / blogsPerPage));
             }
+            setDeletingBlog(null);
         } catch (err) {
             alert(`Failed to delete blog: ${err.message}`);
         }
@@ -214,38 +167,21 @@ const Profile = () => {
         }
     }, [profile, activeTab, userPage]);
 
-    const handleEditUser = (user) => {
-        setEditingUser(user);
-    };
 
-    const handleUserUpdate = async () => {
-        // Reload users after update and reset to page 1
-        setUserPage(1);
-        try {
-            const data = await fetchUsers(usersPerPage, 0);
-            setUsers(data.users || []);
-            setTotalUsers(data.total || 0);
-            setUserTotalPages(Math.ceil((data.total || 0) / usersPerPage));
-        } catch (err) {
-            console.error('Failed to reload users', err);
-        }
-    };
 
-    const handleDeleteUser = async (user) => {
+    const handleDeleteUserCheck = (e, user) => {
         // Prevent deleting yourself
         if (user._id === profile._id) {
             alert('You cannot delete your own account!');
             return;
         }
+        setDeletingUser(user);
+    };
 
-        const confirmed = window.confirm(
-            `Are you sure you want to delete user "${user.username}"? This action cannot be undone.`
-        );
-
-        if (!confirmed) return;
-
+    const handleConfirmDeleteUser = async (user) => {
         try {
             await deleteUser(user._id);
+            setDeletingUser(null);
 
             // Reload users after deletion
             setUserPage(1);
@@ -293,10 +229,7 @@ const Profile = () => {
                 </div>
 
                 <div className="profile-details">
-                    <div className="detail-item">
-                        <span className="label">Username</span>
-                        <span className="value">{profile.username}</span>
-                    </div>
+
                     <div className="detail-item">
                         <span className="label">Email</span>
                         <span className="value">{profile.email}</span>
@@ -389,7 +322,7 @@ const Profile = () => {
                                                 </button>
                                                 <button
                                                     className="delete-blog-btn"
-                                                    onClick={(e) => handleDeleteBlog(e, blog)}
+                                                    onClick={(e) => handleDeleteClick(e, blog)}
                                                     title="Delete blog"
                                                 >
                                                     🗑️
@@ -460,15 +393,8 @@ const Profile = () => {
                                         <div key={user._id} className="blog-card" style={{ cursor: 'default' }}>
                                             <div className="blog-card-actions">
                                                 <button
-                                                    className="edit-blog-btn"
-                                                    onClick={() => handleEditUser(user)}
-                                                    title="Edit user"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
                                                     className="delete-blog-btn"
-                                                    onClick={() => handleDeleteUser(user)}
+                                                    onClick={(e) => handleDeleteUserCheck(e, user)}
                                                     title="Delete user"
                                                     disabled={user._id === profile._id}
                                                     style={user._id === profile._id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
@@ -479,7 +405,6 @@ const Profile = () => {
                                             <div className="blog-card-content">
                                                 <h3>{user.firstName || user.username} {user.lastName || ''}</h3>
                                                 <p className="blog-excerpt">
-                                                    <strong>@{user.username}</strong><br />
                                                     {user.email}
                                                 </p>
                                                 <div className="blog-meta">
@@ -545,7 +470,7 @@ const Profile = () => {
                                         </button>
                                         <button
                                             className="delete-blog-btn"
-                                            onClick={(e) => handleDeleteBlog(e, blog)}
+                                            onClick={(e) => handleDeleteClick(e, blog)}
                                             title="Delete blog"
                                         >
                                             🗑️
@@ -619,11 +544,18 @@ const Profile = () => {
                 onSuccess={handleBlogUpdate}
             />
 
-            <EditUserModal
-                isOpen={!!editingUser}
-                onClose={() => setEditingUser(null)}
-                user={editingUser}
-                onSuccess={handleUserUpdate}
+            <DeleteBlogModal
+                isOpen={!!deletingBlog}
+                onClose={() => setDeletingBlog(null)}
+                blog={deletingBlog}
+                onConfirm={handleConfirmDeleteBlog}
+            />
+
+            <DeleteUserModal
+                isOpen={!!deletingUser}
+                onClose={() => setDeletingUser(null)}
+                user={deletingUser}
+                onConfirm={handleConfirmDeleteUser}
             />
         </div>
     );

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginUser, saveAuthData } from '../services/auth';
+import { loginUser, saveAuthData, fetchCurrentUser } from '../services/auth';
 import '../index.css';
 
 const Login = () => {
@@ -18,9 +18,20 @@ const Login = () => {
         try {
             const data = await loginUser(email, password);
             saveAuthData(data);
-            // For now, staying on page or redirected to a dashboard (if it existed)
-            // Showing an alert or just simple redirect
-            alert(`Login Successful! Welcome ${data.user.username}`);
+
+            // Fetch full user profile to ensure we have latest data in localStorage
+            try {
+                const userProfile = await fetchCurrentUser();
+                const detailedUser = userProfile.user || userProfile;
+                saveAuthData({ ...data, user: detailedUser });
+                console.log('User profile fetched and saved:', detailedUser);
+                alert(`Login Successful! Welcome ${detailedUser.username || detailedUser.email}`);
+            } catch (profileErr) {
+                console.warn('Failed to fetch detailed profile on login:', profileErr);
+                // Fallback to basic data if available, or just proceed
+                alert(`Login Successful! Welcome ${data.user?.username || 'User'}`);
+            }
+
             navigate('/');
         } catch (err) {
             setError(err.message);

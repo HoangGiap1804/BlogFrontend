@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { updateBlog } from '../services/blogs';
 import '../index.css';
 
@@ -9,6 +9,15 @@ const EditBlogModal = ({ isOpen, onClose, blog, onSuccess }) => {
     const [bannerImage, setBannerImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (blog) {
+            setTitle(blog.title || '');
+            setContent(blog.content || '');
+            setStatus(blog.status || 'draft');
+            setBannerImage(null);
+        }
+    }, [blog]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
