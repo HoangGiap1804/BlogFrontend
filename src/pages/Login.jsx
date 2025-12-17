@@ -25,11 +25,9 @@ const Login = () => {
                 const detailedUser = userProfile.user || userProfile;
                 saveAuthData({ ...data, user: detailedUser });
                 console.log('User profile fetched and saved:', detailedUser);
-                alert(`Login Successful! Welcome ${detailedUser.username || detailedUser.email}`);
             } catch (profileErr) {
                 console.warn('Failed to fetch detailed profile on login:', profileErr);
                 // Fallback to basic data if available, or just proceed
-                alert(`Login Successful! Welcome ${data.user?.username || 'User'}`);
             }
 
             navigate('/');

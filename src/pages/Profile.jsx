@@ -29,6 +29,7 @@ const Profile = () => {
     const [userPage, setUserPage] = useState(1);
     const [userTotalPages, setUserTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    const [totalBlogs, setTotalBlogs] = useState(0);
     const navigate = useNavigate();
     const blogsPerPage = 6;
     const usersPerPage = 10;
@@ -60,6 +61,7 @@ const Profile = () => {
 
                     setBlogs(blogsData.blogs || blogsData.items || []);
                     const total = blogsData.total || 0;
+                    setTotalBlogs(total);
                     setTotalPages(Math.ceil(total / blogsPerPage));
                 } catch (err) {
                     console.error("Failed to load blogs", err);
@@ -94,6 +96,7 @@ const Profile = () => {
 
                 setBlogs(blogsData.blogs || blogsData.items || []);
                 const total = blogsData.total || 0;
+                setTotalBlogs(total);
                 setTotalPages(Math.ceil(total / blogsPerPage));
             } catch (err) {
                 console.error("Failed to reload blogs", err);
@@ -136,6 +139,7 @@ const Profile = () => {
 
                 setBlogs(blogsData.blogs || blogsData.items || []);
                 const total = blogsData.total || 0;
+                setTotalBlogs(total);
                 setTotalPages(Math.ceil(total / blogsPerPage));
             }
             setDeletingBlog(null);
@@ -166,6 +170,15 @@ const Profile = () => {
             loadUsers();
         }
     }, [profile, activeTab, userPage]);
+
+    // Fetch initial stats for Admin
+    useEffect(() => {
+        if (profile?.role === 'admin' && totalUsers === 0) {
+            fetchUsers(1, 0).then(data => {
+                setTotalUsers(data.total || 0);
+            }).catch(err => console.error("Failed to load user stats", err));
+        }
+    }, [profile]);
 
 
 
@@ -210,325 +223,285 @@ const Profile = () => {
     const { socialLinks } = profile;
 
     return (
-        <div className="dashboard-container">
-            <button className="back-btn" onClick={() => navigate('/')}>← Back to Dashboard</button>
-
-            {/* Profile Card - Shows first */}
-            <div className={`profile-card ${profile.role === 'admin' ? 'admin-profile' : ''}`}>
-                <div className="profile-header">
-                    <h1>{profile.firstName} {profile.lastName}</h1>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <button
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="edit-profile-btn"
+        <>
+            {profile.role === 'admin' ? (
+                <div className="admin-dashboard-container">
+                    <div className="admin-sidebar">
+                        <h2>🛡️ Admin Panel</h2>
+                        <div
+                            className={`admin-nav-item ${activeTab === 'overview' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('overview')}
                         >
-                            ✏️ Edit Profile
-                        </button>
-                        <span className={`status-badge ${profile.role === 'admin' ? 'admin-badge' : ''}`}>{profile.role}</span>
-                    </div>
-                </div>
-
-                <div className="profile-details">
-
-                    <div className="detail-item">
-                        <span className="label">Email</span>
-                        <span className="value">{profile.email}</span>
-                    </div>
-                    <div className="detail-item">
-                        <span className="label">Joined</span>
-                        <span className="value">{new Date(profile.createdAt).toLocaleDateString()}</span>
-                    </div>
-                </div>
-
-                {socialLinks && Object.keys(socialLinks).length > 0 && (
-                    <div className="social-links-section">
-                        <h3>Social Links</h3>
-                        <div className="social-links-grid">
-                            {Object.entries(socialLinks).map(([platform, url]) => {
-                                if (!url) return null;
-
-                                // Sanitize URL: Ensure it starts with http:// or https://
-                                let safeUrl = url;
-                                if (!/^https?:\/\//i.test(url)) {
-                                    // If it's a javascript: URI, ignore it or make it safe
-                                    if (/^javascript:/i.test(url)) {
-                                        return null; // Do not render dangerous links
-                                    }
-                                    // Assume it's a domain and prepend https://
-                                    safeUrl = `https://${url}`;
-                                }
-
-                                return (
-                                    <a key={platform} href={safeUrl} target="_blank" rel="noopener noreferrer" className="social-link">
-                                        {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                                    </a>
-                                );
-                            })}
+                            📊 Overview
                         </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Admin Dashboard Panel - Only visible for admin users, positioned after profile */}
-            {profile.role === 'admin' && (
-                <div className="admin-dashboard-panel">
-                    <div className="admin-dashboard-header">
-                        <h2>🛡️ Admin Control Panel</h2>
-                        <p className="admin-dashboard-subtitle">Manage your blog platform</p>
-                    </div>
-                    <div className="admin-management-buttons">
-                        <button
-                            className={`management-btn ${activeTab === 'blogs' ? 'active' : ''}`}
+                        <div
+                            className={`admin-nav-item ${activeTab === 'blogs' ? 'active' : ''}`}
                             onClick={() => setActiveTab('blogs')}
                         >
-                            <span className="management-btn-icon">📝</span>
-                            <span className="management-btn-text">Manage Blogs</span>
-                        </button>
-                        <button
-                            className={`management-btn ${activeTab === 'users' ? 'active' : ''}`}
+                            📝 Manage Blogs
+                        </div>
+                        <div
+                            className={`admin-nav-item ${activeTab === 'users' ? 'active' : ''}`}
                             onClick={() => setActiveTab('users')}
                         >
-                            <span className="management-btn-icon">👥</span>
-                            <span className="management-btn-text">Manage Users</span>
-                        </button>
+                            👥 Manage Users
+                        </div>
+                        <div style={{ marginTop: 'auto' }}>
+                            <div className="admin-nav-item" onClick={() => navigate('/')}>
+                                🏠 Home
+                            </div>
+                            <div className="admin-nav-item" onClick={() => setIsEditModalOpen(true)}>
+                                ⚙️ My Settings
+                            </div>
+                        </div>
                     </div>
 
-                </div>
-            )}
+                    <div className="admin-main-content">
+                        <div className="admin-header">
+                            <h1>Welcome back, {profile.firstName}</h1>
+                            <div className="user-info">
+                                <span>{profile.email}</span>
+                                <span className="status-badge admin-badge">ADMIN</span>
+                            </div>
+                        </div>
 
-            {/* Management Section - Shows blogs or users based on activeTab */}
-            {profile.role === 'admin' ? (
-                <div className="profile-blogs-section">
-                    <h2>
-                        {activeTab === 'blogs' ? `All Blogs (${blogs.length})` : `All Users (${totalUsers})`}
-                    </h2>
+                        {/* Overview / Stats Tab */}
+                        {activeTab === 'overview' && (
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>📝</div>
+                                    <div className="stat-info">
+                                        <h3>Total Blogs</h3>
+                                        <span className="value">{totalBlogs}</span>
+                                    </div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>👥</div>
+                                    <div className="stat-info">
+                                        <h3>Total Users</h3>
+                                        <span className="value">{totalUsers}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                    {/* Blogs Tab Content */}
-                    {activeTab === 'blogs' && (
-                        <>
-                            {blogsLoading ? (
-                                <div className="loading">Loading blogs...</div>
-                            ) : blogs.length > 0 ? (
-                                <div className="blog-grid">
-                                    {blogs.map(blog => (
-                                        <div key={blog._id} className="blog-card blog-card-with-edit" onClick={() => navigate(`/blog/${blog.slug}`)} style={{ cursor: 'pointer' }}>
-                                            <div className="blog-card-actions">
-                                                <button
-                                                    className="edit-blog-btn"
-                                                    onClick={(e) => handleEditBlog(e, blog)}
-                                                    title="Edit blog"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    className="delete-blog-btn"
-                                                    onClick={(e) => handleDeleteClick(e, blog)}
-                                                    title="Delete blog"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                            {blog.banner?.url && (
-                                                <img
-                                                    src={blog.banner.url}
-                                                    alt={blog.title}
-                                                    className="blog-card-banner"
-                                                />
-                                            )}
-                                            <div className="blog-card-content">
-                                                <h3>{blog.title}</h3>
-                                                <p className="blog-excerpt">
-                                                    {blog.content?.substring(0, 120)}
-                                                    {blog.content?.length > 120 ? '...' : ''}
-                                                </p>
-                                                <div className="blog-stats">
-                                                    <span>👁️ {blog.viewsCount || 0}</span>
-                                                    <span>❤️ {blog.likesCount || 0}</span>
-                                                    <span>💬 {blog.commentCount || 0}</span>
-                                                </div>
-                                                <div className="blog-meta">
+                        {/* Blogs Management Tab */}
+                        {activeTab === 'blogs' && (
+                            <div className="data-table-container">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Status</th>
+                                            <th>Views</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {blogs.map(blog => (
+                                            <tr key={blog._id}>
+                                                <td>
+                                                    <div style={{ fontWeight: '500' }}>{blog.title}</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#666' }}>{blog.slug}</div>
+                                                </td>
+                                                <td>
                                                     <span className={`status-tag ${blog.status}`}>{blog.status}</span>
-                                                    <span>{new Date(blog.publishedAt || blog.createdAt).toLocaleDateString()}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="no-blogs">No blogs yet.</div>
-                            )}
-
-                            {blogs.length > 0 && totalPages > 1 && (
-                                <div className="pagination-controls">
-                                    <button
-                                        onClick={handlePrevPage}
-                                        disabled={page === 1}
-                                        className="page-btn"
-                                    >
-                                        ← Previous
-                                    </button>
-                                    <span className="page-info">
-                                        Page {page} of {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={handleNextPage}
-                                        disabled={page === totalPages}
-                                        className="page-btn"
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {/* Users Tab Content */}
-                    {activeTab === 'users' && (
-                        <>
-                            {usersLoading ? (
-                                <div className="loading">Loading users...</div>
-                            ) : users.length > 0 ? (
-                                <div className="blog-grid">
-                                    {users.map(user => (
-                                        <div key={user._id} className="blog-card" style={{ cursor: 'default' }}>
-                                            <div className="blog-card-actions">
-                                                <button
-                                                    className="delete-blog-btn"
-                                                    onClick={(e) => handleDeleteUserCheck(e, user)}
-                                                    title="Delete user"
-                                                    disabled={user._id === profile._id}
-                                                    style={user._id === profile._id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                            <div className="blog-card-content">
-                                                <h3>{user.firstName || user.username} {user.lastName || ''}</h3>
-                                                <p className="blog-excerpt">
-                                                    {user.email}
-                                                </p>
-                                                <div className="blog-meta">
-                                                    <span className={`status-tag ${user.role === 'admin' ? 'admin-badge' : ''}`}>
-                                                        {user.role}
-                                                    </span>
-                                                    <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
-                                                </div>
-                                                {user.socialLinks && Object.keys(user.socialLinks).length > 0 && (
-                                                    <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
-                                                        {Object.keys(user.socialLinks).length} social link(s)
+                                                </td>
+                                                <td>{blog.viewsCount || 0}</td>
+                                                <td>{new Date(blog.publishedAt || blog.createdAt).toLocaleDateString()}</td>
+                                                <td>
+                                                    <div className="action-btn-group">
+                                                        <button
+                                                            className="table-action-btn btn-edit"
+                                                            onClick={(e) => handleEditBlog(e, blog)}
+                                                            title="Edit"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                        <button
+                                                            className="table-action-btn btn-delete"
+                                                            onClick={(e) => handleDeleteClick(e, blog)}
+                                                            title="Delete"
+                                                        >
+                                                            🗑️
+                                                        </button>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="no-blogs">No users found</div>
-                            )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {blogs.length === 0 && <div className="no-blogs">No blogs found.</div>}
 
-                            {users.length > 0 && userTotalPages > 1 && (
-                                <div className="pagination-controls">
-                                    <button
-                                        onClick={handleUserPrevPage}
-                                        disabled={userPage === 1}
-                                        className="page-btn"
-                                    >
-                                        ← Previous
-                                    </button>
-                                    <span className="page-info">
-                                        Page {userPage} of {userTotalPages}
-                                    </span>
-                                    <button
-                                        onClick={handleUserNextPage}
-                                        disabled={userPage === userTotalPages}
-                                        className="page-btn"
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                {totalPages > 1 && (
+                                    <div className="pagination-controls">
+                                        <button onClick={handlePrevPage} disabled={page === 1} className="page-btn">Previous</button>
+                                        <span className="page-info">Page {page} of {totalPages}</span>
+                                        <button onClick={handleNextPage} disabled={page === totalPages} className="page-btn">Next</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Users Management Tab */}
+                        {activeTab === 'users' && (
+                            <div className="data-table-container">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Role</th>
+                                            <th>Joined</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map(user => (
+                                            <tr key={user._id}>
+                                                <td>
+                                                    <div style={{ fontWeight: '500' }}>{user.username}</div>
+                                                    <div style={{ fontSize: '0.85rem', color: '#666' }}>{user.email}</div>
+                                                </td>
+                                                <td>
+                                                    <span className={`status-tag ${user.role === 'admin' ? 'admin-badge' : ''}`}>{user.role}</span>
+                                                </td>
+                                                <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                                                <td>
+                                                    <div className="action-btn-group">
+                                                        <button
+                                                            className="table-action-btn btn-delete"
+                                                            onClick={(e) => handleDeleteUserCheck(e, user)}
+                                                            disabled={user._id === profile._id}
+                                                            title="Delete"
+                                                            style={user._id === profile._id ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {users.length === 0 && <div className="no-blogs">No users found.</div>}
+
+                                {userTotalPages > 1 && (
+                                    <div className="pagination-controls">
+                                        <button onClick={handleUserPrevPage} disabled={userPage === 1} className="page-btn">Previous</button>
+                                        <span className="page-info">Page {userPage} of {userTotalPages}</span>
+                                        <button onClick={handleUserNextPage} disabled={userPage === userTotalPages} className="page-btn">Next</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             ) : (
-                /* Regular User Blogs Section */
-                <div className="profile-blogs-section">
-                    <h2>My Blogs ({blogs.length})</h2>
-                    {blogsLoading ? (
-                        <div className="loading">Loading blogs...</div>
-                    ) : blogs.length > 0 ? (
-                        <div className="blog-grid">
-                            {blogs.map(blog => (
-                                <div key={blog._id} className="blog-card blog-card-with-edit" onClick={() => navigate(`/blog/${blog.slug}`)} style={{ cursor: 'pointer' }}>
-                                    <div className="blog-card-actions">
-                                        <button
-                                            className="edit-blog-btn"
-                                            onClick={(e) => handleEditBlog(e, blog)}
-                                            title="Edit blog"
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            className="delete-blog-btn"
-                                            onClick={(e) => handleDeleteClick(e, blog)}
-                                            title="Delete blog"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                    {blog.banner?.url && (
-                                        <img
-                                            src={blog.banner.url}
-                                            alt={blog.title}
-                                            className="blog-card-banner"
-                                        />
-                                    )}
-                                    <div className="blog-card-content">
-                                        <h3>{blog.title}</h3>
-                                        <p className="blog-excerpt">
-                                            {blog.content?.substring(0, 120)}
-                                            {blog.content?.length > 120 ? '...' : ''}
-                                        </p>
-                                        <div className="blog-stats">
-                                            <span>👁️ {blog.viewsCount || 0}</span>
-                                            <span>❤️ {blog.likesCount || 0}</span>
-                                            <span>💬 {blog.commentCount || 0}</span>
-                                        </div>
-                                        <div className="blog-meta">
-                                            <span className={`status-tag ${blog.status}`}>{blog.status}</span>
-                                            <span>{new Date(blog.publishedAt || blog.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="no-blogs">No blogs yet. Create your first blog post!</div>
-                    )}
+                /* Regular User Profile Layout */
+                <div className="dashboard-container">
+                    <button className="back-btn" onClick={() => navigate('/')}>← Back to Dashboard</button>
 
-                    {blogs.length > 0 && totalPages > 1 && (
-                        <div className="pagination-controls">
-                            <button
-                                onClick={handlePrevPage}
-                                disabled={page === 1}
-                                className="page-btn"
-                            >
-                                ← Previous
-                            </button>
-                            <span className="page-info">
-                                Page {page} of {totalPages}
-                            </span>
-                            <button
-                                onClick={handleNextPage}
-                                disabled={page === totalPages}
-                                className="page-btn"
-                            >
-                                Next →
-                            </button>
+                    <div className="profile-card">
+                        <div className="profile-header">
+                            <h1>{profile.firstName} {profile.lastName}</h1>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <button
+                                    onClick={() => setIsEditModalOpen(true)}
+                                    className="edit-profile-btn"
+                                >
+                                    ✏️ Edit Profile
+                                </button>
+                                <span className="status-badge">{profile.role}</span>
+                            </div>
                         </div>
-                    )}
+
+                        <div className="profile-details">
+                            <div className="detail-item">
+                                <span className="label">Email</span>
+                                <span className="value">{profile.email}</span>
+                            </div>
+                            <div className="detail-item">
+                                <span className="label">Joined</span>
+                                <span className="value">{new Date(profile.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+
+                        {socialLinks && Object.keys(socialLinks).length > 0 && (
+                            <div className="social-links-section">
+                                <h3>Social Links</h3>
+                                <div className="social-links-grid">
+                                    {Object.entries(socialLinks).map(([platform, url]) => (
+                                        url ? (
+                                            <a key={platform} href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer" className="social-link">
+                                                {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                                            </a>
+                                        ) : null
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="profile-blogs-section">
+                        <h2>My Blogs ({blogs.length})</h2>
+                        {blogsLoading ? (
+                            <div className="loading">Loading blogs...</div>
+                        ) : blogs.length > 0 ? (
+                            <div className="blog-grid">
+                                {blogs.map(blog => (
+                                    <div key={blog._id} className="blog-card blog-card-with-edit" onClick={() => navigate(`/blog/${blog.slug}`)} style={{ cursor: 'pointer' }}>
+                                        <div className="blog-card-actions">
+                                            <button
+                                                className="edit-blog-btn"
+                                                onClick={(e) => handleEditBlog(e, blog)}
+                                                title="Edit blog"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                className="delete-blog-btn"
+                                                onClick={(e) => handleDeleteClick(e, blog)}
+                                                title="Delete blog"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                        {blog.banner?.url && (
+                                            <img
+                                                src={blog.banner.url}
+                                                alt={blog.title}
+                                                className="blog-card-banner"
+                                            />
+                                        )}
+                                        <div className="blog-card-content">
+                                            <h3>{blog.title}</h3>
+                                            <p className="blog-excerpt">
+                                                {blog.content?.substring(0, 120)}
+                                                {blog.content?.length > 120 ? '...' : ''}
+                                            </p>
+                                            <div className="blog-meta">
+                                                <span className={`status-tag ${blog.status}`}>{blog.status}</span>
+                                                <span>{new Date(blog.publishedAt || blog.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="no-blogs">No blogs yet. Create your first blog post!</div>
+                        )}
+                        {blogs.length > 0 && totalPages > 1 && (
+                            <div className="pagination-controls">
+                                <button onClick={handlePrevPage} disabled={page === 1} className="page-btn">← Previous</button>
+                                <span className="page-info">Page {page} of {totalPages}</span>
+                                <button onClick={handleNextPage} disabled={page === totalPages} className="page-btn">Next →</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
+            )
+            }
 
             <EditProfileModal
                 isOpen={isEditModalOpen}
@@ -557,7 +530,7 @@ const Profile = () => {
                 user={deletingUser}
                 onConfirm={handleConfirmDeleteUser}
             />
-        </div>
+        </>
     );
 };
 
