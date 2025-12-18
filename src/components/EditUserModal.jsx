@@ -50,7 +50,6 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
 
         try {
             const userData = {
-                username,
                 firstName,
                 lastName,
                 email,
@@ -86,18 +85,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
                 {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="profile-form">
-                    <div className="form-group">
-                        <label htmlFor="username">Username *</label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter username"
-                            required
-                            disabled={loading}
-                        />
-                    </div>
+
 
                     <div className="form-group">
                         <label htmlFor="firstName">First Name</label>

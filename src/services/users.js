@@ -87,5 +87,6 @@ export const deleteUser = async (userId) => {
         throw new Error(errorData.message || 'Failed to delete user');
     }
 
-    return await response.json();
+    // Delete successful (204 No Content), no need to parse JSON
+    return { success: true };
 };

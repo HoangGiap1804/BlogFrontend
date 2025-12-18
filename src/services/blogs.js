@@ -153,5 +153,6 @@ export const deleteBlog = async (blogId) => {
         throw new Error(errorData.message || 'Failed to delete blog');
     }
 
-    return await response.json();
+    // Delete successful (204 No Content), no need to parse JSON
+    return { success: true };
 };
