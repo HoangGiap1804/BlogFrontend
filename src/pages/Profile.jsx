@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { getAuthData } from '../services/auth';
+import { getAuthData, fetchCurrentUser, saveAuthData } from '../services/auth';
 import { fetchBlogsByUserId, fetchBlogs, deleteBlog } from '../services/blogs';
 import { fetchUsers, deleteUser } from '../services/users';
 import EditProfileModal from '../components/EditProfileModal';
@@ -73,11 +73,23 @@ const Profile = () => {
         }
     }, [page, profile]);
 
-    const handleProfileUpdate = () => {
-        // Reload profile from localStorage after update
-        const { user } = getAuthData();
-        if (user) {
-            setProfile(user);
+    const handleProfileUpdate = async () => {
+        try {
+            // Fetch fresh user data from API
+            const data = await fetchCurrentUser();
+            if (data && data.user) {
+                setProfile(data.user);
+                // Update localStorage to keep it in sync
+                const { accessToken } = getAuthData();
+                saveAuthData({ accessToken, user: data.user });
+            }
+        } catch (err) {
+            console.error("Failed to fetch updated profile:", err);
+            // Fallback to localStorage if fetch fails
+            const { user } = getAuthData();
+            if (user) {
+                setProfile(user);
+            }
         }
     };
 
